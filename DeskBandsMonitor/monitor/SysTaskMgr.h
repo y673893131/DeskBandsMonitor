@@ -27,6 +27,7 @@ public:
 	static std::string CSysTaskMgr::toSpeedString(unsigned long dwBytes);
 	static std::wstring CSysTaskMgr::toSpeedStringW(unsigned long dwBytes);
 
+	
 private:
 	CSysTaskMgr(const CSysTaskMgr&) = delete;
 
