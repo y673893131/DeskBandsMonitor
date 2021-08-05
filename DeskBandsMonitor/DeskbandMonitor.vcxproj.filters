@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="ClassFactory.cpp" />
+    <ClCompile Include="DeskBand.cpp" />
+    <ClCompile Include="DllMain.cpp" />
+    <ClCompile Include="Log\Log.cpp">
+      <Filter>Log</Filter>
+    </ClCompile>
+    <ClCompile Include="monitor\NetUsage.cpp">
+      <Filter>monitor</Filter>
+    </ClCompile>
+    <ClCompile Include="monitor\SysTaskMgr.cpp">
+      <Filter>monitor</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ClassFactory.h" />
+    <ClInclude Include="DeskBand.h" />
+    <ClInclude Include="Log\Log.h">
+      <Filter>Log</Filter>
+    </ClInclude>
+    <ClInclude Include="monitor\NetUsage.h">
+      <Filter>monitor</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>res</Filter>
+    </ClInclude>
+    <ClInclude Include="monitor\SysTaskMgr.h">
+      <Filter>monitor</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="up.png">
+      <Filter>res</Filter>
+    </Image>
+    <Image Include="down.png">
+      <Filter>res</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DeskBandMonitor.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Log">
+      <UniqueIdentifier>{4b8fe58b-b82b-4add-bff7-3063f3322775}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="monitor">
+      <UniqueIdentifier>{78955460-d014-4fc2-a016-9cfd4fc5a7b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="res">
+      <UniqueIdentifier>{9a67ce2d-37c1-46d4-9bbb-ce8fbbb2c427}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DeskbandMonitor.rc">
+      <Filter>res</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="ClassFactory.cpp" />
+    <ClCompile Include="DeskBand.cpp" />
+    <ClCompile Include="DllMain.cpp" />
+    <ClCompile Include="monitor\SysTaskMgr.cpp">
+      <Filter>monitor</Filter>
+    </ClCompile>
+    <ClCompile Include="monitor\NetUsage.cpp">
+      <Filter>monitor</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ClassFactory.h" />
+    <ClInclude Include="DeskBand.h" />
+    <ClInclude Include="monitor\SysTaskMgr.h">
+      <Filter>monitor</Filter>
+    </ClInclude>
+    <ClInclude Include="monitor\NetUsage.h">
+      <Filter>monitor</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="monitor">
+      <UniqueIdentifier>{63898529-291d-491f-b1e0-ee9841fd06cf}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DeskBandMonitor.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DeskbandMonitor.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="up.png" />
+    <Image Include="down.png" />
+  </ItemGroup>
+</Project>
