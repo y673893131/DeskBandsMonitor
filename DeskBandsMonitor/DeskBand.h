@@ -8,14 +8,14 @@
 #include <commctrl.h>
 #include <assert.h>
 #include <Gdiplus.h>
-#include "resource.h"
+
 
 #pragma comment(lib, "Comctl32.lib")
 #pragma comment(lib, "Gdiplus.lib")
 
 using namespace Gdiplus;
 
-class CSysTaskMgr;
+class CMainWindow;
 class CDeskBand : public IDeskBand2,
                   public IPersistStream,
                   public IObjectWithSite,
@@ -63,33 +63,19 @@ public:
     STDMETHODIMP TranslateAcceleratorIO(MSG *);
 
     CDeskBand();
+	void setFocus(BOOL);
 
 protected:
     ~CDeskBand();
 
-    static LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-    void OnFocus(const BOOL fFocus);
-	void OnHover(const BOOL bHover);
-    void OnPaint(const HDC hdcIn);
-
-	Image* GDIGetImageFromResource(UINT pResourceID, HMODULE hInstance, LPCTSTR	pResourceType);
-	void release();
 private:
     LONG                m_cRef;                 // ref count of deskband
     IInputObjectSite   *m_pSite;                // parent site that contains deskband
-    BOOL                m_fHasFocus;            // whether deskband window currently has focus
     BOOL                m_fIsDirty;             // whether deskband setting has changed
-    BOOL                m_fCompositionEnabled;  // whether glass is currently enabled in deskband
     DWORD               m_dwBandID;             // ID of deskband
-    HWND                m_hwnd;                 // main window of deskband
     HWND                m_hwndParent;           // parent window of deskband
-	BOOL				m_bHover;
 
-	HINSTANCE m_instance;
-	ULONG_PTR m_gdiplusToken;
-	Image* m_up;
-	Image* m_down;
-
-	CSysTaskMgr* m_task;
+	ULONG_PTR			m_gdiplusToken;
+	CMainWindow*		m_pMainWindow;
 };
 

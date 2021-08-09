@@ -3,7 +3,6 @@
   <ItemGroup>
     <ClCompile Include="ClassFactory.cpp" />
     <ClCompile Include="DeskBand.cpp" />
-    <ClCompile Include="DllMain.cpp" />
     <ClCompile Include="Log\Log.cpp">
       <Filter>Log</Filter>
     </ClCompile>
@@ -12,6 +11,15 @@
     </ClCompile>
     <ClCompile Include="monitor\SysTaskMgr.cpp">
       <Filter>monitor</Filter>
+    </ClCompile>
+    <ClCompile Include="window\MainWindow.cpp">
+      <Filter>window</Filter>
+    </ClCompile>
+    <ClCompile Include="DllMain.cpp">
+      <Filter>export</Filter>
+    </ClCompile>
+    <ClCompile Include="menu\PopMenu.cpp">
+      <Filter>menu</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -29,6 +37,15 @@
     <ClInclude Include="monitor\SysTaskMgr.h">
       <Filter>monitor</Filter>
     </ClInclude>
+    <ClInclude Include="window\MainWindow.h">
+      <Filter>window</Filter>
+    </ClInclude>
+    <ClInclude Include="export.h">
+      <Filter>export</Filter>
+    </ClInclude>
+    <ClInclude Include="menu\PopMenu.h">
+      <Filter>menu</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="up.png">
@@ -37,9 +54,6 @@
     <Image Include="down.png">
       <Filter>res</Filter>
     </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="DeskBandMonitor.def" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Log">
@@ -51,10 +65,24 @@
     <Filter Include="res">
       <UniqueIdentifier>{9a67ce2d-37c1-46d4-9bbb-ce8fbbb2c427}</UniqueIdentifier>
     </Filter>
+    <Filter Include="window">
+      <UniqueIdentifier>{3a174624-7293-4375-b452-dba8efc8a6e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="menu">
+      <UniqueIdentifier>{ec2a2937-3e08-4918-a77e-8c72ad3444c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="export">
+      <UniqueIdentifier>{c63cf6b0-a534-4e73-90c6-addf0d40f09b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DeskbandMonitor.rc">
       <Filter>res</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DeskBandMonitor.def">
+      <Filter>export</Filter>
+    </None>
   </ItemGroup>
 </Project>

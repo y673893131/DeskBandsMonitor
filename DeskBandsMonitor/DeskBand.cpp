@@ -1,22 +1,18 @@
 #include <windows.h>
 #include <uxtheme.h>
 #include "DeskBand.h"
+#include "window\MainWindow.h"
+
 #include "monitor\SysTaskMgr.h"
 #include "Log\Log.h"
-#define RECTWIDTH(x)   ((x).right - (x).left)
-#define RECTHEIGHT(x)  ((x).bottom - (x).top)
 
 extern long         g_cDllRef;
 extern HINSTANCE    g_hInst;
-
-extern CLSID CLSID_DeskBandMonitor;
-
-static const WCHAR g_szDeskBandMonitorClass[] = L"DeskBandMonitorClass";
+extern CLSID		CLSID_DeskBandMonitor;
 
 CDeskBand::CDeskBand() :
-	m_cRef(1), m_instance(NULL), m_pSite(NULL), m_fHasFocus(FALSE)
-	, m_fIsDirty(FALSE), m_dwBandID(0), m_hwnd(NULL), m_hwndParent(NULL)
-	, m_bHover(FALSE), m_task(NULL)
+	m_cRef(1), m_pSite(NULL)
+	, m_fIsDirty(FALSE), m_dwBandID(0), m_hwndParent(NULL)
 {
     InterlockedIncrement(&g_cDllRef);
 
@@ -24,6 +20,8 @@ CDeskBand::CDeskBand() :
 	ULONG_PTR gdiplusToken;
 	//初始化gdi+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
+	m_pMainWindow = new CMainWindow(this);
 }
 
 CDeskBand::~CDeskBand()
@@ -31,17 +29,18 @@ CDeskBand::~CDeskBand()
     if (m_pSite)
     {
         m_pSite->Release();
+		m_pSite = NULL;
     }
     
+	if (m_pMainWindow)
+	{
+		delete m_pMainWindow;
+		m_pMainWindow = NULL;
+	}
+
 	//释放gdi+
 	GdiplusShutdown(m_gdiplusToken);
 	
-	if (m_instance)
-	{
-		UnregisterClassW(g_szDeskBandMonitorClass, m_instance);
-		Log(Log_Info, "UnregisterClassW, %d", GetLastError());
-	}
-
 	InterlockedDecrement(&g_cDllRef);
 	Log(Log_Info, "%s", __FUNCTION__);
 }
@@ -109,7 +108,15 @@ STDMETHODIMP_(ULONG) CDeskBand::Release()
 //
 STDMETHODIMP CDeskBand::GetWindow(HWND *phwnd)
 {
-    *phwnd = m_hwnd;
+	if (m_pMainWindow)
+	{
+		*phwnd = m_pMainWindow->getWindow();
+	}
+	else
+	{
+		*phwnd = NULL;
+	}
+
     return S_OK;
 }
 
@@ -123,9 +130,9 @@ STDMETHODIMP CDeskBand::ContextSensitiveHelp(BOOL)
 //
 STDMETHODIMP CDeskBand::ShowDW(BOOL fShow)
 {
-    if (m_hwnd)
+	if (m_pMainWindow)
     {
-        ShowWindow(m_hwnd, fShow ? SW_SHOW : SW_HIDE);
+		m_pMainWindow->show(fShow);
     }
 
     return S_OK;
@@ -133,11 +140,9 @@ STDMETHODIMP CDeskBand::ShowDW(BOOL fShow)
 
 STDMETHODIMP CDeskBand::CloseDW(DWORD)
 {
-    if (m_hwnd)
+	if (m_pMainWindow)
     {
-        ShowWindow(m_hwnd, SW_HIDE);
-        DestroyWindow(m_hwnd);
-        m_hwnd = NULL;
+		m_pMainWindow->close();
     }
 
     return S_OK;
@@ -216,17 +221,20 @@ STDMETHODIMP CDeskBand::CanRenderComposited(BOOL *pfCanRenderComposited)
 
 STDMETHODIMP CDeskBand::SetCompositionState(BOOL fCompositionEnabled)
 {
-    m_fCompositionEnabled = fCompositionEnabled;
-
-    InvalidateRect(m_hwnd, NULL, TRUE);
-    UpdateWindow(m_hwnd);
+	if (m_pMainWindow)
+	{
+		m_pMainWindow->setCompositionState(fCompositionEnabled);
+	}
 
     return S_OK;
 }
 
 STDMETHODIMP CDeskBand::GetCompositionState(BOOL *pfCompositionEnabled)
 {
-    *pfCompositionEnabled = m_fCompositionEnabled;
+	if (m_pMainWindow)
+		*pfCompositionEnabled = m_pMainWindow->getCompositionState();
+	else
+		*pfCompositionEnabled = FALSE;
 
     return S_OK;
 }
@@ -292,33 +300,14 @@ STDMETHODIMP CDeskBand::SetSite(IUnknown *pUnkSite)
             hr = pow->GetWindow(&m_hwndParent);
             if (SUCCEEDED(hr))
             {
-                WNDCLASSW wc = { 0 };
-                wc.style         = CS_HREDRAW | CS_VREDRAW;
-                wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
-                wc.hInstance     = g_hInst;
-                wc.lpfnWndProc   = WndProc;
-				wc.lpszClassName = g_szDeskBandMonitorClass;
-                wc.hbrBackground = CreateSolidBrush(RGB(0, 255, 255));
-
-				RegisterClassW(&wc);
-				Log(Log_Info, "RegisterClassW, %d", GetLastError());
-                CreateWindowExW(0,
-								g_szDeskBandMonitorClass,
-                                NULL,
-                                WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
-                                0,
-                                0,
-                                0,
-                                0,
-                                m_hwndParent,
-                                NULL,
-                                g_hInst,
-                                this);
-				Log(Log_Info, "CreateWindowExW, %d", GetLastError());
-                if (!m_hwnd)
-                {
-                    hr = E_FAIL;
-                }
+				if (m_pMainWindow)
+				{
+					m_pMainWindow->regster(g_hInst);
+					if (m_pMainWindow->create(g_hInst, m_hwndParent))
+					{
+						hr = E_FAIL;
+					}
+				}
             }
 
             pow->Release();
@@ -351,9 +340,9 @@ STDMETHODIMP CDeskBand::GetSite(REFIID riid, void **ppv)
 //
 STDMETHODIMP CDeskBand::UIActivateIO(BOOL fActivate, MSG *)
 {
-    if (fActivate)
+    if (fActivate && m_pMainWindow)
     {
-        SetFocus(m_hwnd);
+		m_pMainWindow->setFocus();
     }
 
     return S_OK;
@@ -361,7 +350,10 @@ STDMETHODIMP CDeskBand::UIActivateIO(BOOL fActivate, MSG *)
 
 STDMETHODIMP CDeskBand::HasFocusIO()
 {
-    return m_fHasFocus ? S_OK : S_FALSE;
+	if (m_pMainWindow)
+		return m_pMainWindow->getFocus() ? S_OK : S_FALSE;
+	else
+		return S_FALSE;
 }
 
 STDMETHODIMP CDeskBand::TranslateAcceleratorIO(MSG *)
@@ -369,288 +361,10 @@ STDMETHODIMP CDeskBand::TranslateAcceleratorIO(MSG *)
     return S_FALSE;
 };
 
-void CDeskBand::OnFocus(const BOOL fFocus)
+void CDeskBand::setFocus(BOOL bFocus)
 {
-    m_fHasFocus = fFocus;
-
-    if (m_pSite)
-    {
-        m_pSite->OnFocusChangeIS(static_cast<IOleWindow*>(this), m_fHasFocus);
-    }
-}
-
-void CDeskBand::OnHover(const BOOL bHover)
-{
-	m_bHover = bHover;
-}
-
-HIMAGELIST g_list = NULL;
-
-Image* CDeskBand::GDIGetImageFromResource(UINT pResourceID, HMODULE hInstance, LPCTSTR	pResourceType)
-{
-	LPCTSTR pResourceName = MAKEINTRESOURCE(pResourceID);
-	HRSRC hResource = FindResource(hInstance, pResourceName, pResourceType);
-	if (!hResource)
+	if (m_pSite)
 	{
-		wchar_t buffer[256] = {};
-		wsprintf(buffer, L"[%p][%s][%d][]1", hInstance, pResourceName, GetLastError());
-		::MessageBoxW(NULL, buffer, L"tips", MB_OK);
-		return NULL;
+		m_pSite->OnFocusChangeIS(static_cast<IOleWindow*>(this), bFocus);
 	}
-	
-	DWORD dwResourceSize = SizeofResource(hInstance, hResource);
-	if (!dwResourceSize)
-	{
-		::MessageBoxA(NULL, "2", "tips", MB_OK);
-		return NULL;
-	}
-
-	const void* pResourceData = LockResource(LoadResource(hInstance, hResource));
-	if (!pResourceData)
-	{
-		::MessageBoxA(NULL, "3", "tips", MB_OK);
-		return NULL;
-	}
-
-	HGLOBAL	hResourceBuffer = GlobalAlloc(GMEM_MOVEABLE, dwResourceSize);
-	if (!hResourceBuffer)
-	{
-		::MessageBoxA(NULL, "4", "tips", MB_OK);
-		return NULL;
-	}
-
-	void* pResourceBuffer = GlobalLock(hResourceBuffer);
-	if (!pResourceBuffer)
-	{
-		GlobalFree(hResourceBuffer);
-		::MessageBoxA(NULL, "5", "tips", MB_OK);
-		return NULL;
-	}
-
-	CopyMemory(pResourceBuffer, pResourceData, dwResourceSize);
-
-	IStream* pIStream = NULL;
-	Gdiplus::Image *pImage = NULL;
-	if (CreateStreamOnHGlobal(hResourceBuffer, FALSE, &pIStream) == S_OK)
-	{
-		pImage = Gdiplus::Image::FromStream(pIStream);
-		pIStream->Release();
-	}
-	else
-	{
-		::MessageBoxA(NULL, "6", "tips", MB_OK);
-	}
-	GlobalUnlock(hResourceBuffer);
-	GlobalFree(hResourceBuffer);
-
-	return pImage;
-}
-
-void CDeskBand::OnPaint(const HDC hdcIn)
-{
-    HDC hdc = hdcIn;
-    PAINTSTRUCT ps;
-    static std::wstring szContent = L"Net Speed";
-	std::wstring szContentUp, szContentDown;
-	static int count = 0;
-
-	auto task = m_task->getTasks();
-	szContentUp = /*std::wstring(L"↑ ") +*/ CSysTaskMgr::toSpeedStringW(task.net.up);
-	szContentDown = /*std::wstring(L"↓ ") + */CSysTaskMgr::toSpeedStringW(task.net.down);
-	if (!hdc)
-    {
-        hdc = BeginPaint(m_hwnd, &ps);
-    }
-
-	auto pContentUp = szContentUp.c_str();
-	int lenUp = (int)szContentUp.length();
-
-	auto pContentDown = szContentDown.c_str();
-	int lenDown = (int)szContentDown.length();
-
-    if (hdc)
-    {
-        RECT rc;
-        GetClientRect(m_hwnd, &rc);
-        {
-			auto mem = CreateCompatibleDC(hdc);
-			auto width = GetDeviceCaps(mem, HORZRES);
-			auto height = GetDeviceCaps(mem, VERTRES);
-			auto bitmap = CreateCompatibleBitmap(hdc, width, height);
-
-			SelectObject(mem, bitmap);
-
-			auto hBrush = CreateSolidBrush(NULL_BRUSH);
-			SetBkMode(mem, TRANSPARENT);
-			FillRect(mem, &rc, hBrush);
-			DeleteObject(hBrush);
-
-			Gdiplus::Graphics g(mem);
-			if (m_bHover)
-			{
-				Gdiplus::SolidBrush b(Gdiplus::Color(220, 0x32, 0x40, 0x53));
-				Gdiplus::Rect r(rc.left, rc.top, RECTWIDTH(rc), RECTHEIGHT(rc));
-				g.FillRectangle(&b, r);
-			}
-
-			Gdiplus::Rect r0(5, (RECTHEIGHT(rc) / 2 - m_up->GetHeight()) / 2, m_up->GetWidth(), m_up->GetHeight());
-			g.DrawImage(m_up, r0);
-
-			Gdiplus::Rect r1(5, (RECTHEIGHT(rc) / 2 - m_down->GetHeight()) / 2 + RECTHEIGHT(rc) / 2, m_down->GetWidth(), m_down->GetHeight());
-			g.DrawImage(m_down, r1);
-
-			Gdiplus::FontFamily fontFamily(L"Microsoft YaHei");
-			Gdiplus::Font f(&fontFamily, 10, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
-			Gdiplus::StringFormat format;
-			format.SetLineAlignment(Gdiplus::StringAlignmentCenter);
-			Gdiplus::SolidBrush b(Gdiplus::Color(255, 255, 255));
-
-			float h = f.GetHeight(&g);
-			float y = (RECTHEIGHT(rc) - 2 * h) / 3;
-			Gdiplus::RectF r2((float)r0.GetRight() + 5, y, (float)RECTWIDTH(rc) - r0.GetRight() + 5, h);
-			Gdiplus::RectF r3((float)r0.GetRight() + 5, y * 2 + h, (float)RECTWIDTH(rc) - r0.GetRight() + 5, h);
-
-			g.SetTextRenderingHint(Gdiplus::TextRenderingHintClearTypeGridFit);
-			g.DrawString(pContentUp, lenUp, &f, r2, &format, &b);
-			g.DrawString(pContentDown, lenDown, &f, r3, &format, &b);
-
-			::BitBlt(hdc, 0, 0, width, height, mem, 0, 0, SRCCOPY);
-			g.ReleaseHDC(mem);
-
-			DeleteDC(mem);
-			DeleteObject(bitmap);
-        }
-    }
-
-    if (!hdcIn)
-    {
-        EndPaint(m_hwnd, &ps);
-    }
-
-	DeleteDC(hdc);
-}
-
-#define TIMER_ID_TEST 1
-LRESULT CALLBACK CDeskBand::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    LRESULT lResult = 0;
-
-    CDeskBand *pDeskBand = reinterpret_cast<CDeskBand *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
-
-    switch (uMsg)
-    {
-    case WM_CREATE:
-        pDeskBand = reinterpret_cast<CDeskBand *>(reinterpret_cast<CREATESTRUCT *>(lParam)->lpCreateParams);
-        pDeskBand->m_hwnd = hwnd;
-        SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pDeskBand));
-#ifdef _M_X64
-		pDeskBand->m_instance = GetModuleHandle(L"DeskbandMonitor_x64.dll");
-#else
-		pDeskBand->m_instance = GetModuleHandle(L"DeskbandMonitor_x86.dll");
-#endif
-
-		Log(Log_Info, "WM_CREATE: instance: 0x%x thead_id:%d", pDeskBand->m_instance, ::GetCurrentThreadId());
-
-		pDeskBand->m_task = new CSysTaskMgr();
-		SetTimer(hwnd, TIMER_ID_TEST, 1000, NULL);
-		{
-			pDeskBand->m_up = pDeskBand->GDIGetImageFromResource(IDB_PNG1, pDeskBand->m_instance, L"PNG");
-			pDeskBand->m_down = pDeskBand->GDIGetImageFromResource(IDB_PNG2, pDeskBand->m_instance, L"PNG");
-		}
-		
-        break;
-    case WM_SETFOCUS:
-        pDeskBand->OnFocus(TRUE);
-        break;
-
-    case WM_KILLFOCUS:
-        pDeskBand->OnFocus(FALSE);
-        break;
-
-	case WM_MOUSEMOVE:
-		if (pDeskBand->m_bHover == FALSE)
-		{
-			TRACKMOUSEEVENT tme;
-			tme.cbSize = sizeof(TRACKMOUSEEVENT);
-			tme.dwFlags = TME_HOVER | TME_LEAVE;
-			tme.dwHoverTime = 1; //1ms 立即显示
-			tme.hwndTrack = hwnd;
-			//激活WM_MOUSEHOVER消息
-			TrackMouseEvent(&tme);
-		}
-		break;
-	case WM_MOUSEHOVER:
-		pDeskBand->OnHover(TRUE);
-		{
-			HDC hdc = GetDC(hwnd);
-			pDeskBand->OnPaint(hdc);
-		}
-		break;
-
-	case WM_MOUSELEAVE:
-		pDeskBand->OnHover(FALSE);
-		{
-			HDC hdc = GetDC(hwnd);
-			pDeskBand->OnPaint(hdc);
-		}
-		break;
-
-    case WM_PAINT:
-        pDeskBand->OnPaint(NULL);
-        break;
-
-    case WM_PRINTCLIENT:
-        pDeskBand->OnPaint(reinterpret_cast<HDC>(wParam));
-        break;
-
-    case WM_ERASEBKGND:
-        if (pDeskBand->m_fCompositionEnabled)
-        {
-            lResult = 1;
-        }
-        break;
-	case WM_TIMER:
-		if (wParam == TIMER_ID_TEST)
-		{
-			HDC hdc = GetDC(hwnd);
-			pDeskBand->OnPaint(hdc);
-		}
-		break;
-	case WM_DESTROY:
-		pDeskBand->release();
-		break;
-    }
-
-    if (uMsg != WM_ERASEBKGND)
-    {
-        lResult = DefWindowProc(hwnd, uMsg, wParam, lParam);
-    }
-
-    return lResult;
-}
-
-void CDeskBand::release()
-{
-	KillTimer(m_hwnd, TIMER_ID_TEST);
-	//CoFreeUnusedLibraries();
-	
-	if (m_up)
-	{
-		delete m_up;
-		m_up = NULL;
-	}
-
-	if (m_down)
-	{
-		delete m_down;
-		m_down = NULL;
-	}
-
-	if (m_task)
-	{
-		delete m_task;
-		m_task = NULL;
-	}
-
-	//Log(Log_Info, "release");
 }

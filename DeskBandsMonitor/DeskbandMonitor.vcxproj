@@ -158,6 +158,9 @@
       <TargetMachine>MachineX64</TargetMachine>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y $(outdir)\$(TargetName)$(TargetExt) $(SolutionDir)\DeskbandInstall\$(TargetName)$(TargetExt)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Midl>
@@ -183,22 +186,30 @@
       <TargetMachine>MachineX64</TargetMachine>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y $(outdir)\$(TargetName)$(TargetExt) $(SolutionDir)\DeskbandInstall\$(TargetName)$(TargetExt)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClassFactory.cpp" />
     <ClCompile Include="DeskBand.cpp" />
     <ClCompile Include="DllMain.cpp" />
     <ClCompile Include="Log\Log.cpp" />
+    <ClCompile Include="menu\PopMenu.cpp" />
     <ClCompile Include="monitor\NetUsage.cpp" />
     <ClCompile Include="monitor\SysTaskMgr.cpp" />
+    <ClCompile Include="window\MainWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClassFactory.h" />
     <ClInclude Include="DeskBand.h" />
+    <ClInclude Include="export.h" />
     <ClInclude Include="Log\Log.h" />
+    <ClInclude Include="menu\PopMenu.h" />
     <ClInclude Include="monitor\NetUsage.h" />
     <ClInclude Include="monitor\SysTaskMgr.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="window\MainWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="DeskBandMonitor.def" />

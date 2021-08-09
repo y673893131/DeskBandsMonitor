@@ -16,6 +16,8 @@ CLSID CLSID_DeskBandMonitor = { 0xBF57B3D6, 0xAB54, 0x4D35, { 0x86, 0x39, 0x44, 
 
 HINSTANCE   g_hInst     = NULL;
 long        g_cDllRef   = 0;
+HWND		m_notifyHend = NULL;
+BOOL		m_bFound = FALSE;
 
 STDAPI_(BOOL) DllMain(HINSTANCE hInstance, DWORD dwReason, void *)
 {
@@ -198,8 +200,6 @@ STDAPI DLLIsRegster()
 		return E_FAIL;
 }
 
-HWND m_notifyHend = NULL;
-BOOL m_bFound = FALSE;
 BOOL CALLBACK enumWindowCallBack(HWND hwnd, LPARAM l)
 {
 	if (m_bFound)
@@ -232,24 +232,6 @@ HWND FindDeskBandWindow()
 	return m_notifyHend;
 }
 
-void sendKey(HWND hwnd, UINT keyCode, bool extended)
-{
-	auto scanCode = MapVirtualKey(keyCode, 0);
-
-	//KEY DOWN
-	UINT lParam = (0x00000001 | (scanCode << 16));
-	if (extended)
-	{
-		lParam = lParam | 0x01000000;
-	}
-
-	SendMessage(hwnd, WM_KEYDOWN, keyCode, lParam | 0x2000000);//atl
-
-	//KEY UP
-
-	PostMessage(hwnd, WM_KEYUP, keyCode, lParam);
-}
-
 bool AutoClickNotifyButton()
 {
 	auto hwnd = FindDeskBandWindow();
@@ -261,9 +243,6 @@ bool AutoClickNotifyButton()
 	HWND hAffirmWindow = FindWindowEx(hwnd, NULL, L"DirectUIHWND", NULL);
 	if (hAffirmWindow)
 	{
-		//UINT VK_Y = 0x59;
-		//sendKey(hAffirmWindow, VK_Y, true);
-
 		HWND hSink = nullptr;
 		int nRetryTimes = 1000;
 		do
@@ -289,7 +268,6 @@ bool AutoClickNotifyButton()
 
 	return false;
 }
-
 
 LRESULT CALLBACK CallWndRetProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
