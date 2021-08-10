@@ -29,6 +29,7 @@ CMainWindow::CMainWindow(CDeskBand* parent)
 	, m_bHover(FALSE)
 	, m_up(NULL)
 	, m_down(NULL)
+	, m_imgList(NULL)
 	, m_bPressTrigger(FALSE)
 	, m_task(NULL)
 	, m_pMenu(NULL)
@@ -235,6 +236,14 @@ void CMainWindow::onCreate()
 	{
 		m_up = gdiGetFileFromResource(IDB_PNG1, L"PNG");
 		m_down = gdiGetFileFromResource(IDB_PNG2, L"PNG");
+
+		m_imgList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 2, 0);
+		HBITMAP bmp_up, bmp_down;
+		Gdiplus::Color c(0, 255, 255, 255);
+		m_up->GetHBITMAP(c, &bmp_up);
+		m_down->GetHBITMAP(c, &bmp_down);
+		ImageList_AddMasked(m_imgList, bmp_up, RGB(255, 255, 255));
+		ImageList_AddMasked(m_imgList, bmp_down, RGB(255, 255, 255));
 	}
 
 	m_pMenu = new CPopMenu();
@@ -257,7 +266,7 @@ void CMainWindow::onHover(BOOL bHover)
 		KT(TIMER_ID_HOVER);
 }
 
-Image* CMainWindow::gdiGetFileFromResource(UINT pResourceID, LPCTSTR pResourceType)
+Bitmap* CMainWindow::gdiGetFileFromResource(UINT pResourceID, LPCTSTR pResourceType)
 {
 	LPCTSTR pResourceName = MAKEINTRESOURCE(pResourceID);
 	HRSRC hResource = FindResource(m_hInstance, pResourceName, pResourceType);
@@ -301,10 +310,10 @@ Image* CMainWindow::gdiGetFileFromResource(UINT pResourceID, LPCTSTR pResourceTy
 	CopyMemory(pResourceBuffer, pResourceData, dwResourceSize);
 
 	IStream* pIStream = NULL;
-	Gdiplus::Image *pImage = NULL;
+	Gdiplus::Bitmap *pImage = NULL;
 	if (CreateStreamOnHGlobal(hResourceBuffer, FALSE, &pIStream) == S_OK)
 	{
-		pImage = Gdiplus::Image::FromStream(pIStream);
+		pImage = Gdiplus::Bitmap::FromStream(pIStream);
 		pIStream->Release();
 	}
 	else
@@ -317,79 +326,176 @@ Image* CMainWindow::gdiGetFileFromResource(UINT pResourceID, LPCTSTR pResourceTy
 	return pImage;
 }
 
-void CMainWindow::onPaint(const HDC hdcIn)
+void CMainWindow::onGdiPlusPaint(const HDC hdcIn)
 {
-	HDC hdc = hdcIn;
-	PAINTSTRUCT ps;
-	static std::wstring szContent = L"Net Speed";
-	std::wstring szContentUp, szContentDown;
-	static int count = 0;
+	RECT rc;
+	GetClientRect(m_hwnd, &rc);
+	auto mem = CreateCompatibleDC(hdcIn);
+	auto width = GetDeviceCaps(mem, HORZRES);
+	auto height = GetDeviceCaps(mem, VERTRES);
+	auto bitmap = CreateCompatibleBitmap(hdcIn, width, height);
+
+	SelectObject(mem, bitmap);
+
+	auto hBrush = CreateSolidBrush(NULL_BRUSH);
+	SetBkMode(mem, TRANSPARENT);
+	FillRect(mem, &rc, hBrush);
+	DeleteObject(hBrush);
+
+	Gdiplus::Graphics g(mem);
+	if (m_bHover)
+	{
+		Gdiplus::SolidBrush b(Gdiplus::Color(220, 0x32, 0x40, 0x53));
+		Gdiplus::Rect r(rc.left, rc.top, RECTWIDTH(rc), RECTHEIGHT(rc));
+		g.FillRectangle(&b, r);
+	}
+	
+	Gdiplus::Rect r0(5, (RECTHEIGHT(rc) / 2 - m_up->GetHeight()) / 2, m_up->GetWidth(), m_up->GetHeight());
+	g.DrawImage(m_up, r0);
+
+	Gdiplus::Rect r1(5, (RECTHEIGHT(rc) / 2 - m_down->GetHeight()) / 2 + RECTHEIGHT(rc) / 2, m_down->GetWidth(), m_down->GetHeight());
+	g.DrawImage(m_down, r1);
+
+	Gdiplus::FontFamily fontFamily(L"Microsoft YaHei");
+	Gdiplus::Font f(&fontFamily, 10, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
+	Gdiplus::StringFormat format;
+	format.SetLineAlignment(Gdiplus::StringAlignmentCenter);
+	Gdiplus::SolidBrush b(Gdiplus::Color(255, 255, 255));
+
+	float h = f.GetHeight(&g);
+	float y = (RECTHEIGHT(rc) - 2 * h) / 3;
+	Gdiplus::RectF r2((float)r0.GetRight() + 5, y, (float)RECTWIDTH(rc) - r0.GetRight() + 5, h);
+	Gdiplus::RectF r3((float)r0.GetRight() + 5, y * 2 + h, (float)RECTWIDTH(rc) - r0.GetRight() + 5, h);
+
+	g.SetTextRenderingHint(Gdiplus::TextRenderingHintClearTypeGridFit);
 
 	auto task = m_task->getTasks();
+	std::wstring szContentUp, szContentDown;
 	szContentUp = /*std::wstring(L"¡ü ") +*/ CSysTaskMgr::toSpeedStringW(task.net.up);
 	szContentDown = /*std::wstring(L"¡ý ") + */CSysTaskMgr::toSpeedStringW(task.net.down);
-	if (!hdc)
-	{
-		hdc = BeginPaint(m_hwnd, &ps);
-	}
-
+	
 	auto pContentUp = szContentUp.c_str();
 	int lenUp = (int)szContentUp.length();
 
 	auto pContentDown = szContentDown.c_str();
 	int lenDown = (int)szContentDown.length();
 
+	g.DrawString(pContentUp, lenUp, &f, r2, &format, &b);
+	g.DrawString(pContentDown, lenDown, &f, r3, &format, &b);
+
+	::BitBlt(hdcIn, 0, 0, width, height, mem, 0, 0, SRCCOPY);
+	g.ReleaseHDC(mem);
+
+	DeleteDC(mem);
+	DeleteObject(bitmap);
+}
+
+void CMainWindow::onThemePaint(const HDC hdcIn, HTHEME hTheme)
+{
+	RECT rc;
+	GetClientRect(m_hwnd, &rc);
+	HDC hdcPaint = NULL;
+	HPAINTBUFFER hBufferedPaint = BeginBufferedPaint(hdcIn, &rc, BPBF_TOPDOWNDIB, NULL, &hdcPaint);
+	
+	DrawThemeParentBackground(m_hwnd, hdcPaint, &rc);
+
+	if (m_bHover)
+	{
+		Gdiplus::Graphics g(hdcPaint);
+		Gdiplus::SolidBrush b(Gdiplus::Color(220, 0x32, 0x40, 0x53));
+		Gdiplus::Rect r(rc.left, rc.top, RECTWIDTH(rc), RECTHEIGHT(rc));
+		g.FillRectangle(&b, r);
+		g.ReleaseHDC(hdcPaint);
+	}
+	// up.png	
+	RECT r0;
+	r0.left = 5;
+	r0.top = 2;
+	r0.right = 5 + 16;
+	r0.bottom = r0.top + 16;
+	DrawThemeIcon(hTheme, hdcPaint, BP_PUSHBUTTON, PBS_DISABLED, &r0, m_imgList, 0);
+
+	r0.top = r0.bottom + 5;
+	r0.bottom = r0.top + 16;
+	DrawThemeIcon(hTheme, hdcPaint, BP_PUSHBUTTON, PBS_DISABLED, &r0, m_imgList, 1);
+
+	auto task = m_task->getTasks();
+	std::wstring szContentUp, szContentDown;
+	szContentUp = /*std::wstring(L"¡ü ") +*/ CSysTaskMgr::toSpeedStringW(task.net.up);
+	szContentDown = /*std::wstring(L"¡ý ") + */CSysTaskMgr::toSpeedStringW(task.net.down);
+	auto pContentUp = szContentUp.c_str();
+	int lenUp = (int)szContentUp.length();
+	auto pContentDown = szContentDown.c_str();
+	//int lenDown = (int)szContentDown.length();
+
+	SIZE size;
+	GetTextExtentPointW(hdcIn, pContentUp, lenUp, &size);
+	int space = (RECTHEIGHT(rc) - 2 * size.cy) / 3;
+
+	RECT r2;
+	r2.left = 5 + r0.right;
+	r2.top = space;
+	r2.right = RECTWIDTH(rc) - 5;
+	r2.bottom = r2.top + space + size.cy;
+
+	RECT r3;
+	r3.left = r2.left;
+	r3.top = r2.bottom + space;
+	r3.right = RECTWIDTH(rc) - 5;
+	r3.bottom = rc.bottom;
+
+	DTTOPTS dttOpts = { sizeof(dttOpts) };
+	dttOpts.dwFlags = DTT_COMPOSITED | DTT_TEXTCOLOR | DTT_GLOWSIZE;
+	dttOpts.crText = RGB(255, 255, 255);
+	dttOpts.iGlowSize = 0;
+
+	static auto font = CreateFont(18, // nHeight
+		0, // nWidth
+		0, // nEscapement
+		0, // nOrientation
+		FW_NORMAL, // nWeight
+		FALSE, // bItalic
+		FALSE, // bUnderline
+		0, // cStrikeOut
+		ANSI_CHARSET, // nCharSet
+		OUT_DEFAULT_PRECIS, // nOutPrecision
+		CLIP_DEFAULT_PRECIS, // nClipPrecision
+		DEFAULT_QUALITY, // nQuality
+		DEFAULT_PITCH | FF_SWISS, // nPitchAndFamily
+		L"Microsoft YaHei"); // lpszFac
+
+	SelectObject(hdcPaint, font);
+	DrawThemeTextEx(hTheme, hdcPaint, 0, 0, pContentUp, -1, 0, &r2, &dttOpts);
+	DrawThemeTextEx(hTheme, hdcPaint, 0, 0, pContentDown, -1, 0, &r3, &dttOpts);
+
+	EndBufferedPaint(hBufferedPaint, TRUE);
+	CloseThemeData(hTheme);
+}
+
+void CMainWindow::onPaint(const HDC hdcIn)
+{
+	HDC hdc = hdcIn;
+	PAINTSTRUCT ps;
+	if (!hdc)
+	{
+		hdc = BeginPaint(m_hwnd, &ps);
+	}
+
 	if (hdc)
 	{
 		RECT rc;
 		GetClientRect(m_hwnd, &rc);
+		if (getCompositionState())
 		{
-			auto mem = CreateCompatibleDC(hdc);
-			auto width = GetDeviceCaps(mem, HORZRES);
-			auto height = GetDeviceCaps(mem, VERTRES);
-			auto bitmap = CreateCompatibleBitmap(hdc, width, height);
-
-			SelectObject(mem, bitmap);
-
-			auto hBrush = CreateSolidBrush(NULL_BRUSH);
-			SetBkMode(mem, TRANSPARENT);
-			FillRect(mem, &rc, hBrush);
-			DeleteObject(hBrush);
-
-			Gdiplus::Graphics g(mem);
-			if (m_bHover)
+			HTHEME hTheme = OpenThemeData(NULL, L"BUTTON");
+			if (hTheme)
 			{
-				Gdiplus::SolidBrush b(Gdiplus::Color(220, 0x32, 0x40, 0x53));
-				Gdiplus::Rect r(rc.left, rc.top, RECTWIDTH(rc), RECTHEIGHT(rc));
-				g.FillRectangle(&b, r);
+				onThemePaint(hdc, hTheme);
 			}
-
-			Gdiplus::Rect r0(5, (RECTHEIGHT(rc) / 2 - m_up->GetHeight()) / 2, m_up->GetWidth(), m_up->GetHeight());
-			g.DrawImage(m_up, r0);
-
-			Gdiplus::Rect r1(5, (RECTHEIGHT(rc) / 2 - m_down->GetHeight()) / 2 + RECTHEIGHT(rc) / 2, m_down->GetWidth(), m_down->GetHeight());
-			g.DrawImage(m_down, r1);
-
-			Gdiplus::FontFamily fontFamily(L"Microsoft YaHei");
-			Gdiplus::Font f(&fontFamily, 10, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
-			Gdiplus::StringFormat format;
-			format.SetLineAlignment(Gdiplus::StringAlignmentCenter);
-			Gdiplus::SolidBrush b(Gdiplus::Color(255, 255, 255));
-
-			float h = f.GetHeight(&g);
-			float y = (RECTHEIGHT(rc) - 2 * h) / 3;
-			Gdiplus::RectF r2((float)r0.GetRight() + 5, y, (float)RECTWIDTH(rc) - r0.GetRight() + 5, h);
-			Gdiplus::RectF r3((float)r0.GetRight() + 5, y * 2 + h, (float)RECTWIDTH(rc) - r0.GetRight() + 5, h);
-
-			g.SetTextRenderingHint(Gdiplus::TextRenderingHintClearTypeGridFit);
-			g.DrawString(pContentUp, lenUp, &f, r2, &format, &b);
-			g.DrawString(pContentDown, lenDown, &f, r3, &format, &b);
-
-			::BitBlt(hdc, 0, 0, width, height, mem, 0, 0, SRCCOPY);
-			g.ReleaseHDC(mem);
-
-			DeleteDC(mem);
-			DeleteObject(bitmap);
+			else
+			{
+				onGdiPlusPaint(hdc);
+			}
 		}
 	}
 
@@ -469,6 +575,12 @@ void CMainWindow::onDestroy()
 	{
 		delete m_down;
 		m_down = NULL;
+	}
+
+	if (m_imgList)
+	{
+		ImageList_Destroy(m_imgList);
+		m_imgList = NULL;
 	}
 
 	if (m_task)

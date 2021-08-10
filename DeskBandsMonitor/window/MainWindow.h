@@ -3,6 +3,8 @@
 #include <Windows.h>
 #include <string>
 
+#include <uxtheme.h>
+
 #include <Gdiplus.h>
 using namespace Gdiplus;
 
@@ -37,6 +39,8 @@ private:
 	void onFocus(BOOL fFocus);
 	void onHover(BOOL bHover);
 	void onPaint(const HDC hdcIn);
+	void onGdiPlusPaint(const HDC hdcIn);
+	void onThemePaint(const HDC hdcIn, HTHEME hTheme);
 	void onLeftClick(WPARAM);
 	void onLeftDubleClick();
 	void onRightClick(LPARAM);
@@ -49,7 +53,7 @@ private:
 	void onMenuClose();
 	void onMenuUnreg();
 private:
-	Image* gdiGetFileFromResource(UINT pResourceID, LPCTSTR pResourceType);
+	Bitmap* gdiGetFileFromResource(UINT pResourceID, LPCTSTR pResourceType);
 
 private:
 	CDeskBand*			m_pDeskBand;
@@ -62,8 +66,11 @@ private:
 	BOOL				m_bHover;
 	BOOL				m_bPressTrigger;
 
-	Image* m_up;
-	Image* m_down;
+	Bitmap* m_up;
+	Bitmap* m_down;
+
+	HIMAGELIST m_imgList;
+
 	CPopMenu* m_pMenu;
 	
 	CSysTaskMgr* m_task;
