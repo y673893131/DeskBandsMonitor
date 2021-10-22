@@ -306,6 +306,26 @@ void CMonitorOperator::uninstall()
 	DeleteFile(path.c_str());
 }
 
+#include <TlHelp32.h>
+std::wstring getPidPath(DWORD pid)
+{
+	auto hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
+	if (hSnapshot == INVALID_HANDLE_VALUE)
+	{
+		return L"";
+	}
+
+	MODULEENTRY32 me32;
+	me32.dwSize = sizeof(MODULEENTRY32);
+	if (!Module32First(hSnapshot, &me32))
+	{
+		return L"";
+	}
+
+	CloseHandle(hSnapshot);
+	return me32.szExePath;
+}
+
 void CMonitorOperator::help()
 {
 	std::string sHelp;

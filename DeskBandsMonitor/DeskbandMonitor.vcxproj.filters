@@ -1,8 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="ClassFactory.cpp" />
-    <ClCompile Include="DeskBand.cpp" />
     <ClCompile Include="Log\Log.cpp">
       <Filter>Log</Filter>
     </ClCompile>
@@ -19,12 +17,28 @@
       <Filter>export</Filter>
     </ClCompile>
     <ClCompile Include="menu\PopMenu.cpp">
-      <Filter>menu</Filter>
+      <Filter>window\menu</Filter>
+    </ClCompile>
+    <ClCompile Include="tooltip\TooltipDetail.cpp">
+      <Filter>window\tooltip</Filter>
+    </ClCompile>
+    <ClCompile Include="window\DetailWindow.cpp">
+      <Filter>window</Filter>
+    </ClCompile>
+    <ClCompile Include="util\Util.cpp">
+      <Filter>util</Filter>
+    </ClCompile>
+    <ClCompile Include="window\base\BaseWindow.cpp">
+      <Filter>window\base</Filter>
+    </ClCompile>
+    <ClCompile Include="ClassFactory.cpp">
+      <Filter>com</Filter>
+    </ClCompile>
+    <ClCompile Include="DeskBand.cpp">
+      <Filter>com</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ClassFactory.h" />
-    <ClInclude Include="DeskBand.h" />
     <ClInclude Include="Log\Log.h">
       <Filter>Log</Filter>
     </ClInclude>
@@ -44,7 +58,25 @@
       <Filter>export</Filter>
     </ClInclude>
     <ClInclude Include="menu\PopMenu.h">
-      <Filter>menu</Filter>
+      <Filter>window\menu</Filter>
+    </ClInclude>
+    <ClInclude Include="tooltip\TooltipDetail.h">
+      <Filter>window\tooltip</Filter>
+    </ClInclude>
+    <ClInclude Include="window\DetailWindow.h">
+      <Filter>window</Filter>
+    </ClInclude>
+    <ClInclude Include="util\Util.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="window\base\BaseWindow.h">
+      <Filter>window\base</Filter>
+    </ClInclude>
+    <ClInclude Include="ClassFactory.h">
+      <Filter>com</Filter>
+    </ClInclude>
+    <ClInclude Include="DeskBand.h">
+      <Filter>com</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -68,11 +100,23 @@
     <Filter Include="window">
       <UniqueIdentifier>{3a174624-7293-4375-b452-dba8efc8a6e9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="menu">
-      <UniqueIdentifier>{ec2a2937-3e08-4918-a77e-8c72ad3444c2}</UniqueIdentifier>
-    </Filter>
     <Filter Include="export">
       <UniqueIdentifier>{c63cf6b0-a534-4e73-90c6-addf0d40f09b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="util">
+      <UniqueIdentifier>{6bdc6cc7-8338-425d-8bd5-3c5118fbb3d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="window\base">
+      <UniqueIdentifier>{f008420d-048f-4f09-b50f-285418c99503}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="window\menu">
+      <UniqueIdentifier>{ec2a2937-3e08-4918-a77e-8c72ad3444c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="window\tooltip">
+      <UniqueIdentifier>{15abc722-358f-4860-9ef7-02c849e9e85c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="com">
+      <UniqueIdentifier>{0e847e0c-8cde-4622-8cce-d0ef40ee1841}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

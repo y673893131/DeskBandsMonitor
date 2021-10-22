@@ -10,13 +10,14 @@ using namespace Gdiplus;
 
 #include "../resource.h"
 
-class CDeskBand;
 class CSysTaskMgr;
 class CPopMenu;
+class CTooltipDetail;
+class CDetailWindow;
 class CMainWindow
 {
 public:
-	CMainWindow(CDeskBand* parent);
+	CMainWindow();
 	~CMainWindow();
 
 	BOOL regster(HINSTANCE hInstance);
@@ -56,7 +57,6 @@ private:
 	Bitmap* gdiGetFileFromResource(UINT pResourceID, LPCTSTR pResourceType);
 
 private:
-	CDeskBand*			m_pDeskBand;
 	HINSTANCE			m_hInstance;
 	HWND				m_hwnd;
 	std::wstring		m_className;
@@ -72,7 +72,11 @@ private:
 	HIMAGELIST m_imgList;
 
 	CPopMenu* m_pMenu;
-	
+
+	CTooltipDetail* m_pTooltip;
+
+	CDetailWindow* m_pDetailWindow;
+
 	CSysTaskMgr* m_task;
 };
 

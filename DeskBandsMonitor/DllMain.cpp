@@ -329,13 +329,24 @@ STDAPI DllShowMonitor(BOOL bShow)
 					//CloseHandle(hEvent);
 					
 					hr = pTrayDeskBand->ShowDeskBand(CLSID_DeskBandMonitor);
+					Sleep(100);
 					if (SUCCEEDED(hr))
 					{
-						for (i = 0; i < 1000; ++i)
+						for (i = 0; i < 100; ++i)
 						{
 							if (AutoClickNotifyButton())
+							{
 								break;
-							//Sleep(100);
+							}
+							else
+							{
+								hr = pTrayDeskBand->IsDeskBandShown(CLSID_DeskBandMonitor);
+								if (SUCCEEDED(hr))
+								{
+									break;
+								}
+							}
+							Sleep(10);
 						}
 					}
 				}

@@ -21,7 +21,7 @@ CDeskBand::CDeskBand() :
 	//≥ı ºªØgdi+
 	GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
-	m_pMainWindow = new CMainWindow(this);
+	m_pMainWindow = new CMainWindow();
 }
 
 CDeskBand::~CDeskBand()

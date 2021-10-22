@@ -1,27 +1,30 @@
 #include "MainWindow.h"
-#include "../DeskBand.h"
 #include "../Log/Log.h"
 #include "../monitor/SysTaskMgr.h"
 #include "../menu/PopMenu.h"
+#include "../tooltip/TooltipDetail.h"
+#include "DetailWindow.h"
 #include "../export.h"
+#include "../util/Util.h"
+
+#include <Vsstyle.h>
 
 #define MB(x) ::MessageBox(NULL, x, L"Tips", MB_OK);
-#define ST(x) ::SetTimer(m_hwnd, x, 1000, NULL)
+#define ST(x, y) ::SetTimer(m_hwnd, x, y, NULL)
 #define KT(x) ::KillTimer(m_hwnd, x)
 #define RECTWIDTH(x)   ((x).right - (x).left)
 #define RECTHEIGHT(x)  ((x).bottom - (x).top)
 #define TIMER_ID_TEST 1
 #define TIMER_ID_DBCLICK 2
-#define TIMER_ID_HOVER 3
+#define TIMER_ID_LEAVE 3
 
 #define MENU_ID_FIRST 0x1000
 #define MENU_ID_CLOSE 0x1000
 #define MENU_ID_UNREG 0x1001
 
 
-CMainWindow::CMainWindow(CDeskBand* parent)
-	: m_pDeskBand(parent)
-	, m_className(L"DeskBandMonitorClass")
+CMainWindow::CMainWindow()
+	: m_className(L"DeskBandMonitorClass")
 	, m_hInstance(NULL)
 	, m_hwnd(NULL)
 	, m_bCompositionEnabled(FALSE)
@@ -33,6 +36,8 @@ CMainWindow::CMainWindow(CDeskBand* parent)
 	, m_bPressTrigger(FALSE)
 	, m_task(NULL)
 	, m_pMenu(NULL)
+	, m_pTooltip(NULL)
+	, m_pDetailWindow(NULL)
 {
 }
 
@@ -155,13 +160,7 @@ LRESULT CALLBACK CMainWindow::windowCallBack(HWND hwnd, UINT uMsg, WPARAM wParam
 	case WM_MOUSEMOVE:
 		if (pThis->m_bHover == FALSE)
 		{
-			TRACKMOUSEEVENT tme;
-			tme.cbSize = sizeof(TRACKMOUSEEVENT);
-			tme.dwFlags = TME_HOVER | TME_LEAVE;
-			tme.dwHoverTime = 1; //1ms 立即显示
-			tme.hwndTrack = hwnd;
-			//激活WM_MOUSEHOVER消息
-			TrackMouseEvent(&tme);
+			util::setMouseTracking(pThis->m_hwnd);
 		}
 		break;
 	case WM_MOUSEHOVER:
@@ -249,21 +248,28 @@ void CMainWindow::onCreate()
 	m_pMenu = new CPopMenu();
 	m_pMenu->append(MENU_ID_CLOSE, L"close");
 	m_pMenu->append(MENU_ID_UNREG, L"unregster");
+
+	m_pTooltip = new CTooltipDetail(m_hInstance, m_hwnd);
+	m_pDetailWindow = new CDetailWindow(m_hwnd);
 }
 
 void CMainWindow::onFocus(BOOL fFocus)
 {
 	m_bFocus = fFocus;
-	m_pDeskBand->setFocus(m_bFocus);
 }
 
 void CMainWindow::onHover(BOOL bHover)
 {
 	m_bHover = bHover;
+	KT(TIMER_ID_LEAVE);
 	if (m_bHover)
-		ST(TIMER_ID_HOVER);
+	{
+		m_pDetailWindow->show(true);
+	}
 	else
-		KT(TIMER_ID_HOVER);
+	{
+		ST(TIMER_ID_LEAVE, 500);
+	}
 }
 
 Bitmap* CMainWindow::gdiGetFileFromResource(UINT pResourceID, LPCTSTR pResourceType)
@@ -370,9 +376,10 @@ void CMainWindow::onGdiPlusPaint(const HDC hdcIn)
 	g.SetTextRenderingHint(Gdiplus::TextRenderingHintClearTypeGridFit);
 
 	auto task = m_task->getTasks();
+	m_pDetailWindow->setNet(task);
 	std::wstring szContentUp, szContentDown;
-	szContentUp = /*std::wstring(L"↑ ") +*/ CSysTaskMgr::toSpeedStringW(task.net.up);
-	szContentDown = /*std::wstring(L"↓ ") + */CSysTaskMgr::toSpeedStringW(task.net.down);
+	szContentUp = CSysTaskMgr::toSpeedStringW(task.total.up);
+	szContentDown = CSysTaskMgr::toSpeedStringW(task.total.down);
 	
 	auto pContentUp = szContentUp.c_str();
 	int lenUp = (int)szContentUp.length();
@@ -420,9 +427,10 @@ void CMainWindow::onThemePaint(const HDC hdcIn, HTHEME hTheme)
 	DrawThemeIcon(hTheme, hdcPaint, BP_PUSHBUTTON, PBS_DISABLED, &r0, m_imgList, 1);
 
 	auto task = m_task->getTasks();
+	m_pDetailWindow->setNet(task);
 	std::wstring szContentUp, szContentDown;
-	szContentUp = /*std::wstring(L"↑ ") +*/ CSysTaskMgr::toSpeedStringW(task.net.up);
-	szContentDown = /*std::wstring(L"↓ ") + */CSysTaskMgr::toSpeedStringW(task.net.down);
+	szContentUp = /*std::wstring(L"↑ ") +*/ CSysTaskMgr::toSpeedStringW(task.total.up);
+	szContentDown = /*std::wstring(L"↓ ") + */CSysTaskMgr::toSpeedStringW(task.total.down);
 	auto pContentUp = szContentUp.c_str();
 	int lenUp = (int)szContentUp.length();
 	auto pContentDown = szContentDown.c_str();
@@ -551,9 +559,11 @@ void CMainWindow::onTimer(UINT id)
 			PostMessage(m_hwnd, WM_LBUTTONDOWN, MK_LBUTTON | 0x8000, 0);
 		}
 	}break;
-	case TIMER_ID_HOVER:
-		KT(TIMER_ID_HOVER);
-		Log(Log_Info, "HOVER TIMEOUT");
+	case TIMER_ID_LEAVE:
+		KT(TIMER_ID_LEAVE);
+		//m_pTooltip->tooltip(L"hahahahahahahahahha");
+		if (!m_pDetailWindow->isHover())
+			m_pDetailWindow->show(false);
 		break;
 	default:
 		break;
@@ -593,6 +603,18 @@ void CMainWindow::onDestroy()
 	{
 		delete m_pMenu;
 		m_pMenu = NULL;
+	}
+
+	if (m_pTooltip)
+	{
+		delete m_pTooltip;
+		m_pTooltip = NULL;
+	}
+
+	if (m_pDetailWindow)
+	{
+		delete m_pDetailWindow;
+		m_pDetailWindow = NULL;
 	}
 }
 

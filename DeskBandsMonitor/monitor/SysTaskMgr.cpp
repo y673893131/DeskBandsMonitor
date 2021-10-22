@@ -3,17 +3,21 @@
 #include <Psapi.h>
 #include <sstream>
 #include "../Log/Log.h"
+#include "../../NetMonitor/NetManager.h"
 
 CSysTaskMgr::CSysTaskMgr()
 {
-	m_pNetTask = new CNetUsage();
+	//m_pNetTask = new CNetUsage();
+	m_pNetManager = new CNetManager();
 }
 
 CSysTaskMgr::~CSysTaskMgr()
 {
 	Log(Log_Info, "%s", __FUNCTION__);
-	m_pNetTask->stop();
-	delete m_pNetTask;
+	//m_pNetTask->stop();
+	//delete m_pNetTask;
+	m_pNetManager->stop();
+	delete m_pNetManager;
 }
 
 std::string CSysTaskMgr::toSpeedString(unsigned long dwBytes) {
@@ -47,9 +51,5 @@ std::wstring CSysTaskMgr::toSpeedStringW(unsigned long dwBytes)
 
 _monotor_info_t CSysTaskMgr::getTasks()
 {
-	_monotor_info_t t;
-	t.net.up = m_pNetTask->getUp();
-	t.net.down = m_pNetTask->getDown();
-
-	return std::move(t);
+	return m_pNetManager->getStatInfo();
 }

@@ -2,20 +2,10 @@
 
 //#include <TlHelp32.h>
 #include <string>
+#include "../../NetMonitor/NetManager.h"
 
-//net speed(bit/s)
-struct _net_info_t
-{
-	unsigned long up;
-	unsigned long down;
-};
-
-struct _monotor_info_t
-{
-	_net_info_t net;
-};
-
-class CNetUsage;
+//class CNetUsage;
+class CNetManager;
 class CSysTaskMgr
 {
 public:
@@ -31,6 +21,7 @@ private:
 	CSysTaskMgr(const CSysTaskMgr&) = delete;
 
 private:
-	CNetUsage* m_pNetTask;
+	//CNetUsage* m_pNetTask;
+	CNetManager* m_pNetManager;
 };
 

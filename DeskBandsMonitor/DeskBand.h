@@ -4,7 +4,6 @@
 #include <shlobj.h> // for IDeskband2, IObjectWithSite, IPesistStream, and IInputObject
 
 #include <string>
-#include <Vsstyle.h>
 #include <commctrl.h>
 #include <assert.h>
 #include <Gdiplus.h>

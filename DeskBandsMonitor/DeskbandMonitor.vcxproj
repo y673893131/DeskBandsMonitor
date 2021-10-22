@@ -81,12 +81,15 @@
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
     <TargetName>$(ProjectName)_x64</TargetName>
+    <LibraryPath>.\..\NetMonitor\winpcap\Lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <TargetName>$(ProjectName)_x64</TargetName>
+    <LibraryPath>.\..\NetMonitor\winpcap\Lib\x64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -141,7 +144,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;DESKBANDMONITOR_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader />
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -157,6 +160,7 @@
       <DataExecutionPrevention />
       <TargetMachine>MachineX64</TargetMachine>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
+      <UACUIAccess>false</UACUIAccess>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y $(outdir)\$(TargetName)$(TargetExt) $(SolutionDir)\DeskbandInstall\$(TargetName)$(TargetExt)</Command>
@@ -198,6 +202,10 @@
     <ClCompile Include="menu\PopMenu.cpp" />
     <ClCompile Include="monitor\NetUsage.cpp" />
     <ClCompile Include="monitor\SysTaskMgr.cpp" />
+    <ClCompile Include="tooltip\TooltipDetail.cpp" />
+    <ClCompile Include="util\Util.cpp" />
+    <ClCompile Include="window\base\BaseWindow.cpp" />
+    <ClCompile Include="window\DetailWindow.cpp" />
     <ClCompile Include="window\MainWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -209,6 +217,10 @@
     <ClInclude Include="monitor\NetUsage.h" />
     <ClInclude Include="monitor\SysTaskMgr.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="tooltip\TooltipDetail.h" />
+    <ClInclude Include="util\Util.h" />
+    <ClInclude Include="window\base\BaseWindow.h" />
+    <ClInclude Include="window\DetailWindow.h" />
     <ClInclude Include="window\MainWindow.h" />
   </ItemGroup>
   <ItemGroup>
@@ -220,6 +232,11 @@
   <ItemGroup>
     <Image Include="down.png" />
     <Image Include="up.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NetMonitor\NetMonitor.vcxproj">
+      <Project>{2675e983-2e7e-41f6-9616-85b31696bcf5}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
