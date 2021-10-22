@@ -81,7 +81,7 @@
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
     <TargetName>$(ProjectName)_x64</TargetName>
-    <LibraryPath>.\..\NetMonitor\winpcap\Lib\x64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>.\..\NetMonitor\winpcap\Lib\x64;$(opengl_glfw_3_3)\lib\x64;$(LibraryPath)</LibraryPath>
     <IncludePath>$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -151,7 +151,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>uxtheme.lib;strsafe.lib;gdi32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>uxtheme.lib;strsafe.lib;gdi32.lib;advapi32.lib;glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <ModuleDefinitionFile>DeskbandMonitor.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>

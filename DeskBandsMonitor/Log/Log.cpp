@@ -4,8 +4,11 @@
 
 CLog* CLog::m_log = NULL;
 BOOL CLog::m_bEncrypt = FALSE;
+#if _DEBUG
+BOOL CLog::m_bEnable = TRUE;
+#else
 BOOL CLog::m_bEnable = FALSE;
-
+#endif
 CLog::CLog(const char* sDir, const char* sPrifix)
 {
 	if (!m_bEnable)

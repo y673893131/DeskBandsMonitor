@@ -45,7 +45,6 @@ private:
 	int getRowByPos(int yPos);
 	int getColByPos(int xPos);
 	int getTableWidth();
-	std::wstring getFullPath(HANDLE hProcess);
 private:
 	_monotor_info_t m_net;
 

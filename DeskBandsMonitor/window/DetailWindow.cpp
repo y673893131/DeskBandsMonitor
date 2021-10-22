@@ -103,9 +103,6 @@ void CDetailWindow::onMouseMove(WPARAM /*wParam*/, LPARAM lParam)
 	auto col = getColByPos(xPos);
 	bool bUpdate = false;
 	
-	//wchar_t buff[128] = {};
-	//wsprintf(buff, L"(%d, %d)\n", xPos, yPos);
-	//OutputDebugString(buff);
 	// col
 	if (col != m_nHoverCol)
 	{
@@ -165,46 +162,6 @@ void CDetailWindow::onMouseClick(WPARAM /*wParam*/, LPARAM lParam)
 	}
 
 	clicked(row, col);
-}
-
-std::wstring CDetailWindow::getFullPath(HANDLE hProcess)
-{
-	if (!hProcess)
-		return L"";
-	bool bFind = false;
-	BOOL bSuccess = FALSE;
-	std::wstring sPath;
-	TCHAR szPath[MAX_PATH + 1] = { 0 };
-	do
-	{
-		if (NULL == hProcess)
-		{
-			break;
-		}
-
-		HMODULE hMod = NULL;
-		DWORD cbNeeded = 0;
-		if (FALSE == EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded))
-		{
-			break;
-		}
-		if (0 == GetModuleFileNameEx(hProcess, hMod, szPath, MAX_PATH))
-		{
-			break;
-		}
-		sPath = szPath;
-		bSuccess = TRUE;
-
-	} while (bFind);
-
-	if (sPath.empty())
-	{
-		DWORD len = MAX_PATH;
-		QueryFullProcessImageName(hProcess, 0, szPath, &len);
-		sPath = szPath;
-	}
-
-	return std::move(sPath);
 }
 
 void CDetailWindow::clicked(int row, int col)

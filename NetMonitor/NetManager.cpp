@@ -57,15 +57,33 @@ typedef struct tcp_header{
 	u_short  urgent_pointer;    // (16 bits)
 } tcp_header;
 
+CRITICAL_SECTION m_lock;
+HANDLE m_hStatThread = NULL;
+HANDLE m_hFilterThread = NULL;
+
 CNetManager::CNetManager()
 	:m_bStop(false)
 {
+	InitializeCriticalSection(&m_lock);
 	auto s = enumNetInterface();
 	init(s[0]);
 }
 
 CNetManager::~CNetManager()
 {
+	DeleteCriticalSection(&m_lock);
+
+	if (m_hStatThread)
+	{
+		CloseHandle(m_hStatThread);
+		m_hStatThread = NULL;
+	}
+
+	if (m_hFilterThread)
+	{
+		CloseHandle(m_hFilterThread);
+		m_hFilterThread = NULL;
+	}
 }
 
 std::string CNetManager::iptos(u_long in)
@@ -102,13 +120,27 @@ std::vector<std::string> CNetManager::enumNetInterface()
 	return dess;
 }
 
+DWORD WINAPI statCallback(LPVOID lpThreadParameter)
+{
+	auto pThis = reinterpret_cast<CNetManager*>(lpThreadParameter);
+	pThis->statThreadFunc();
+	return 0;
+}
+
+DWORD WINAPI filterCallback(LPVOID lpThreadParameter)
+{
+	auto pThis = reinterpret_cast<CNetManager*>(lpThreadParameter);
+	pThis->getNetThreadFunc();
+	return 0;
+}
+
 bool CNetManager::init(const std::string& sTarget)
 {
 	m_sTarget = sTarget;
-	std::thread portThread = std::thread(&CNetManager::statThreadFunc, this);
-	std::thread netThread = std::thread(&CNetManager::getNetThreadFunc, this);
-	portThread.detach();
-	netThread.detach();
+	DWORD statThreadId = 0;
+	DWORD filterThreadId = 0;
+	m_hStatThread = CreateThread(nullptr, 0, statCallback, this, 0, &statThreadId);
+	m_hFilterThread = CreateThread(nullptr, 0, filterCallback, this, 0, &filterThreadId);
 
 	return true;
 }
@@ -116,12 +148,17 @@ bool CNetManager::init(const std::string& sTarget)
 void CNetManager::stop()
 {
 	m_bStop = true;
-	m_bNetStoped = false;
-	m_bStatStoped = false;
 
-	while (!m_bNetStoped || !m_bStatStoped)
+	if (m_hStatThread)
 	{
-		Sleep(10);
+		TerminateThread(m_hStatThread, 2);
+		WaitForSingleObject(m_hStatThread, INFINITE);
+	}
+
+	if (m_hFilterThread)
+	{
+		TerminateThread(m_hFilterThread, 2);
+		WaitForSingleObject(m_hFilterThread, INFINITE);
 	}
 }
 
@@ -256,7 +293,8 @@ void CNetManager::getNetThreadFunc()
 		packet_handler(NULL, header, pkt_data);
 	}
 
-	m_bNetStoped = true;
+	pcap_close(adhandle);
+
 	return ;
 }
 
@@ -335,7 +373,7 @@ void CNetManager::packet_handler(u_char *param, const struct pcap_pkthdr *header
 
 void CNetManager::statisticNet(const port_net_t& t, bool isSend)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
+	EnterCriticalSection(&m_lock);
 
 	u_int port = isSend ? t.srcPort : t.destPort;
 	auto it = m_nets.stream.port_pid.find(port);
@@ -356,6 +394,8 @@ void CNetManager::statisticNet(const port_net_t& t, bool isSend)
 		__GetUdpConnect(port, t.len);
 		__GetTcpConnect(port, t.len);
 	}
+
+	LeaveCriticalSection(&m_lock);
 }
 
 //#include <Iprtrmib.h>
@@ -514,7 +554,7 @@ void CNetManager::statThreadFunc()
 		{
 			if (m_bStop)
 				break;
-			std::lock_guard<std::mutex> lock(m_mutex);
+			EnterCriticalSection(&m_lock);
 
 			m_stat = _monotor_info_t();
 			for (auto it : m_nets.stream.pid_len)
@@ -542,16 +582,19 @@ void CNetManager::statThreadFunc()
 
 			m_nets.pid_name.clear();
 			__GetPidInfo();
+
+			LeaveCriticalSection(&m_lock);
 		}
 		
 		Sleep(1000);
 	} while (true);
-
-	m_bStatStoped = true;
 }
 
 _monotor_info_t CNetManager::getStatInfo()
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
-	return m_stat;
+	_monotor_info_t infos;
+	EnterCriticalSection(&m_lock);
+	infos = m_stat;
+	LeaveCriticalSection(&m_lock);
+	return std::move(infos);
 }

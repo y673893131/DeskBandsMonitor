@@ -3,9 +3,6 @@
 #include <vector>
 #include <map>
 #include <string>
-#include <mutex>
-//#include <winsock2.h>
-//#include <Windows.h>
 
 typedef unsigned char   u_char;
 typedef unsigned short  u_short;
@@ -116,13 +113,16 @@ public:
 	void stop();
 	_monotor_info_t getStatInfo();
 
+public:
+	void getNetThreadFunc();
+	void statThreadFunc();
+
 private:
 	std::string iptos(u_long in);
-	void getNetThreadFunc();
+	
 	void packet_handler(u_char *param, const struct pcap_pkthdr *header, const u_char *pkt_data);
 	void statisticNet(const port_net_t& t, bool isSend);
-
-	void statThreadFunc();
+	
 	bool __GetUdpConnect(int targetPort = 0, int nLen = 0, bool bSend = false);
 	bool __GetTcpConnect(int targetPort = 0, int nLen = 0, bool bSend = false);
 	void __GetPidInfo(int targetPid = 0);
@@ -132,7 +132,7 @@ private:
 	std::string m_sTarget;
 	proccess_net_t m_nets;
 	_monotor_info_t m_stat;
-	std::mutex m_mutex;
-	bool m_bStop, m_bNetStoped, m_bStatStoped;
+	
+	bool m_bStop;
 };
 
